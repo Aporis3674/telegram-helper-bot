@@ -29,25 +29,29 @@ async def send_as_blockquote(message, text: str, quote: bool = True):
     if not cleaned:
         cleaned = "پاسخی دریافت نشد."
 
-    # بررسی محدودیت طول پیام در تلگرام (حداکثر ۴۰۹۶ کاراکتر)
     chunk_size = 3500
+    kwargs = {}
+    if quote and hasattr(message, "message_id"):
+        kwargs["reply_to_message_id"] = message.message_id
+
     if len(cleaned) <= chunk_size:
         formatted = f"<blockquote>{html.escape(cleaned)}</blockquote>"
         try:
-            await message.reply_text(formatted, parse_mode=ParseMode.HTML, quote=quote)
+            await message.reply_text(formatted, parse_mode=ParseMode.HTML, **kwargs)
         except Exception as e:
             logger.warning(f"Error sending HTML blockquote: {e}. Falling back to plain text.")
-            await message.reply_text(cleaned, quote=quote)
+            await message.reply_text(cleaned, **kwargs)
     else:
         # تقسیم به چند پیام برای پیام‌های طولانی
         for i in range(0, len(cleaned), chunk_size):
             chunk = cleaned[i:i + chunk_size]
             formatted_chunk = f"<blockquote>{html.escape(chunk)}</blockquote>"
             is_first = (i == 0)
+            cur_kwargs = kwargs if is_first else {}
             try:
-                await message.reply_text(formatted_chunk, parse_mode=ParseMode.HTML, quote=(quote if is_first else False))
+                await message.reply_text(formatted_chunk, parse_mode=ParseMode.HTML, **cur_kwargs)
             except Exception:
-                await message.reply_text(chunk, quote=(quote if is_first else False))
+                await message.reply_text(chunk, **cur_kwargs)
 
 def is_bot_mentioned_or_called(text: str, bot_username: str) -> bool:
     """
