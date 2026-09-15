@@ -78,8 +78,11 @@ get_service_status() {
 }
 
 is_installed() {
-    if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/bot.py" ]; then
-        return 0
+    if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/bot.py" ] && [ -f "$INSTALL_DIR/.env" ]; then
+        local token=$(grep "^TELEGRAM_BOT_TOKEN=" "$INSTALL_DIR/.env" 2>/dev/null | cut -d '=' -f2- | tr -d ' "')
+        if [ -n "$token" ]; then
+            return 0
+        fi
     fi
     return 1
 }
@@ -189,7 +192,10 @@ do_install() {
     mkdir -p "$INSTALL_DIR"
     if [ -d "$INSTALL_DIR/.git" ]; then
         cd "$INSTALL_DIR"
-        git pull origin main || true
+        git fetch --all
+        git reset --hard origin/main || true
+    elif [ -f "$INSTALL_DIR/bot.py" ]; then
+        cd "$INSTALL_DIR"
     else
         git clone "$REPO_URL" "$INSTALL_DIR"
     fi

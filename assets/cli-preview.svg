@@ -1,118 +1,123 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 580" width="880" height="580">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d1117" />
-      <stop offset="100%" stop-color="#161b22" />
-    </linearGradient>
-    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.6" />
+    <!-- Dot pattern for background -->
+    <pattern id="dotPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#2d3748" fill-opacity="0.4" />
+    </pattern>
+
+    <!-- Terminal shadow -->
+    <filter id="windowShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000000" flood-opacity="0.75" />
     </filter>
   </defs>
 
   <style>
-    .term-text { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; font-size: 13px; fill: #c9d1d9; }
-    .cyan { fill: #38bdf8; font-weight: bold; }
-    .blue { fill: #60a5fa; font-weight: bold; }
-    .white { fill: #f0f6fc; }
-    .gray { fill: #8b949e; }
-    .green { fill: #4ade80; font-weight: bold; }
-    .yellow { fill: #facc15; }
-    .bold { font-weight: bold; }
+    .t-code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace; font-size: 13.5px; }
+    .t-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12.5px; fill: #94a3b8; }
+    .c-cyan { fill: #22d3ee; }
+    .c-blue { fill: #38bdf8; font-weight: bold; }
+    .c-white { fill: #f8fafc; }
+    .c-gray { fill: #64748b; }
+    .c-green { fill: #4ade80; }
+    .c-yellow { fill: #facc15; }
+    .c-dim { fill: #94a3b8; }
   </style>
 
-  <!-- Background Canvas -->
-  <rect width="880" height="580" rx="16" fill="#030712" />
+  <!-- Canvas Background -->
+  <rect width="900" height="620" fill="#0b0f17" />
+  <rect width="900" height="620" fill="url(#dotPattern)" />
 
   <!-- Terminal Window -->
-  <g filter="url(#shadow)" transform="translate(30, 25)">
-    <!-- Terminal Body -->
-    <rect width="820" height="530" rx="10" fill="url(#bgGrad)" stroke="#30363d" stroke-width="1.5" />
+  <g filter="url(#windowShadow)" transform="translate(45, 35)">
+    <!-- Terminal Outer Frame -->
+    <rect width="810" height="550" rx="12" fill="#121820" stroke="#1e293b" stroke-width="1.5" />
 
-    <!-- Terminal Title Bar -->
-    <path d="M 0 10 C 0 4.477 4.477 0 10 0 L 810 0 C 815.523 0 820 4.477 820 10 L 820 38 L 0 38 Z" fill="#161b22" stroke="#30363d" stroke-width="1" />
+    <!-- Terminal Header / Titlebar -->
+    <path d="M 0 12 C 0 5.373 5.373 0 12 0 L 798 0 C 804.627 0 810 5.373 810 12 L 810 38 L 0 38 Z" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
 
-    <!-- Window Controls -->
-    <circle cx="22" cy="19" r="6" fill="#ff5f56" stroke="#e0443e" stroke-width="0.5" />
-    <circle cx="42" cy="19" r="6" fill="#ffbd2e" stroke="#dea123" stroke-width="0.5" />
-    <circle cx="62" cy="19" r="6" fill="#27c93f" stroke="#1aab29" stroke-width="0.5" />
+    <!-- macOS Traffic Light Buttons -->
+    <circle cx="24" cy="19" r="6" fill="#ef4444" />
+    <circle cx="44" cy="19" r="6" fill="#f59e0b" />
+    <circle cx="64" cy="19" r="6" fill="#10b981" />
 
-    <!-- Window Title -->
-    <text x="410" y="24" text-anchor="middle" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#8b949e" font-weight="500">root@server: /opt/helper-bot — Helper AI Bot CLI</text>
+    <!-- Centered Terminal Title -->
+    <text x="405" y="24" text-anchor="middle" class="t-title">root@cb948efaa60c: /</text>
 
-    <!-- Terminal Content -->
-    <g transform="translate(32, 65)">
-      <!-- ASCII Art Banner -->
-      <text class="term-text cyan" x="0" y="16">  _  _ _____ _     ___ ___ ___ </text>
-      <text class="term-text cyan" x="0" y="32"> | || | ____| |   | _ \ __| _ \</text>
-      <text class="term-text cyan" x="0" y="48"> | __ |  _| | |   |  _/ _||   /</text>
-      <text class="term-text cyan" x="0" y="64"> |_||_|_____|____ |_| |___|_|_\</text>
+    <!-- Terminal Inner Text Area -->
+    <g transform="translate(30, 62)">
+      <!-- ASCII Logo -->
+      <text class="t-code c-cyan" x="0" y="16">  _  _ _____ _     ___ ___ ___ </text>
+      <text class="t-code c-cyan" x="0" y="32"> | || | ____| |   | _ \ __| _ \</text>
+      <text class="t-code c-cyan" x="0" y="48"> | __ |  _| | |   |  _/ _||   /</text>
+      <text class="t-code c-cyan" x="0" y="64"> |_||_|_____|____ |_| |___|_|_\</text>
 
-      <!-- App Title -->
-      <text class="term-text" x="0" y="94">
-        <tspan class="blue bold">Helper AI Bot</tspan>
-        <tspan class="gray"> - </tspan>
-        <tspan class="white">Telegram Assistant CLI</tspan>
+      <!-- App Subtitle -->
+      <text class="t-code" x="0" y="98">
+        <tspan class="c-blue">Helper AI Bot</tspan>
+        <tspan class="c-gray">  -  </tspan>
+        <tspan class="c-white">Telegram Assistant CLI</tspan>
       </text>
-      <text class="term-text gray" x="0" y="110">--------------------------------------------------</text>
 
-      <!-- System Info Grid -->
-      <text class="term-text" x="0" y="132">
-        <tspan class="cyan">OS            </tspan><tspan class="gray"> : </tspan><tspan class="white">Ubuntu 22.04.4 LTS x86_64</tspan>
-      </text>
-      <text class="term-text" x="0" y="152">
-        <tspan class="cyan">Kernel        </tspan><tspan class="gray"> : </tspan><tspan class="white">5.15.0-105-generic</tspan>
-      </text>
-      <text class="term-text" x="0" y="172">
-        <tspan class="cyan">Python        </tspan><tspan class="gray"> : </tspan><tspan class="white">3.10.12</tspan>
-      </text>
-      <text class="term-text" x="0" y="192">
-        <tspan class="cyan">Directory     </tspan><tspan class="gray"> : </tspan><tspan class="white">/opt/helper-bot</tspan>
-      </text>
-      <text class="term-text" x="0" y="212">
-        <tspan class="cyan">Service       </tspan><tspan class="gray"> : </tspan><tspan class="green">Active (Running)</tspan>
-      </text>
-      <text class="term-text" x="0" y="232">
-        <tspan class="cyan">AI Model      </tspan><tspan class="gray"> : </tspan><tspan class="white">gpt-4o-mini</tspan>
-      </text>
-      <text class="term-text gray" x="0" y="250">--------------------------------------------------</text>
+      <text class="t-code c-gray" x="0" y="118">--------------------------------------------------</text>
 
-      <!-- Color Palette Blocks -->
-      <g transform="translate(0, 262)">
-        <rect x="0" y="0" width="22" height="12" fill="#000000" rx="2" />
-        <rect x="26" y="0" width="22" height="12" fill="#ef4444" rx="2" />
-        <rect x="52" y="0" width="22" height="12" fill="#22c55e" rx="2" />
-        <rect x="78" y="0" width="22" height="12" fill="#eab308" rx="2" />
-        <rect x="104" y="0" width="22" height="12" fill="#3b82f6" rx="2" />
-        <rect x="130" y="0" width="22" height="12" fill="#a855f7" rx="2" />
-        <rect x="156" y="0" width="22" height="12" fill="#06b6d4" rx="2" />
-        <rect x="182" y="0" width="22" height="12" fill="#f1f5f9" rx="2" />
+      <!-- System Details Table -->
+      <text class="t-code" x="0" y="140">
+        <tspan class="c-cyan">OS            </tspan><tspan class="c-gray"> : </tspan><tspan class="c-white">Ubuntu 22.04.2 LTS</tspan>
+      </text>
+      <text class="t-code" x="0" y="162">
+        <tspan class="c-cyan">Kernel        </tspan><tspan class="c-gray"> : </tspan><tspan class="c-white">6.18.15+deb13-cloud-amd64</tspan>
+      </text>
+      <text class="t-code" x="0" y="184">
+        <tspan class="c-cyan">Python        </tspan><tspan class="c-gray"> : </tspan><tspan class="c-white">3.10.12</tspan>
+      </text>
+      <text class="t-code" x="0" y="206">
+        <tspan class="c-cyan">Directory     </tspan><tspan class="c-gray"> : </tspan><tspan class="c-white">/opt/helper-bot</tspan>
+      </text>
+      <text class="t-code" x="0" y="228">
+        <tspan class="c-cyan">Service       </tspan><tspan class="c-gray"> : </tspan><tspan class="c-green">Active (Running)</tspan>
+      </text>
+      <text class="t-code" x="0" y="250">
+        <tspan class="c-cyan">AI Model      </tspan><tspan class="c-gray"> : </tspan><tspan class="c-white">gpt-4o-mini</tspan>
+      </text>
 
-        <rect x="0" y="16" width="22" height="12" fill="#64748b" rx="2" />
-        <rect x="26" y="16" width="22" height="12" fill="#f87171" rx="2" />
-        <rect x="52" y="16" width="22" height="12" fill="#4ade80" rx="2" />
-        <rect x="78" y="16" width="22" height="12" fill="#fde047" rx="2" />
-        <rect x="104" y="16" width="22" height="12" fill="#60a5fa" rx="2" />
-        <rect x="130" y="16" width="22" height="12" fill="#c084fc" rx="2" />
-        <rect x="156" y="16" width="22" height="12" fill="#22d3ee" rx="2" />
-        <rect x="182" y="16" width="22" height="12" fill="#ffffff" rx="2" />
+      <text class="t-code c-gray" x="0" y="270">--------------------------------------------------</text>
+
+      <!-- Fastfetch Color Palette Grid -->
+      <g transform="translate(0, 284)">
+        <rect x="0" y="0" width="24" height="13" fill="#1e293b" rx="2" />
+        <rect x="28" y="0" width="24" height="13" fill="#ef4444" rx="2" />
+        <rect x="56" y="0" width="24" height="13" fill="#22c55e" rx="2" />
+        <rect x="84" y="0" width="24" height="13" fill="#eab308" rx="2" />
+        <rect x="112" y="0" width="24" height="13" fill="#3b82f6" rx="2" />
+        <rect x="140" y="0" width="24" height="13" fill="#a855f7" rx="2" />
+        <rect x="168" y="0" width="24" height="13" fill="#06b6d4" rx="2" />
+        <rect x="196" y="0" width="24" height="13" fill="#cbd5e1" rx="2" />
+
+        <rect x="0" y="17" width="24" height="13" fill="#475569" rx="2" />
+        <rect x="28" y="17" width="24" height="13" fill="#f87171" rx="2" />
+        <rect x="56" y="17" width="24" height="13" fill="#4ade80" rx="2" />
+        <rect x="84" y="17" width="24" height="13" fill="#fde047" rx="2" />
+        <rect x="112" y="17" width="24" height="13" fill="#60a5fa" rx="2" />
+        <rect x="140" y="17" width="24" height="13" fill="#c084fc" rx="2" />
+        <rect x="168" y="17" width="24" height="13" fill="#22d3ee" rx="2" />
+        <rect x="196" y="17" width="24" height="13" fill="#ffffff" rx="2" />
       </g>
 
-      <!-- Interactive Menu Prompt -->
-      <text class="term-text" x="0" y="316">
-        <tspan class="white bold">Helper Bot is installed. Choose an action </tspan>
-        <tspan class="gray">(Use UP/DOWN arrows, press ENTER to select):</tspan>
+      <!-- Menu Instruction -->
+      <text class="t-code" x="0" y="342">
+        <tspan class="c-white" font-weight="bold">Helper Bot CLI. Choose an action </tspan>
+        <tspan class="c-gray">(Use UP/DOWN arrows, press ENTER to select):</tspan>
       </text>
 
-      <!-- Active Menu Selection (Blue highlighted) -->
-      <rect x="-8" y="330" width="750" height="24" rx="4" fill="#1e3a8a" fill-opacity="0.3" stroke="#3b82f6" stroke-width="1" stroke-opacity="0.5" />
-      <text class="term-text blue bold" x="0" y="346">&gt; [x] Update Bot (Pull latest code and restart)</text>
+      <!-- Selected Active Option -->
+      <text class="t-code c-cyan" font-weight="bold" x="0" y="372">&gt; [x] Install / Update Helper Bot</text>
 
-      <!-- Other Menu Options -->
-      <text class="term-text gray" x="0" y="370">  [ ] Reconfigure Settings (Edit API keys and model)</text>
-      <text class="term-text gray" x="0" y="392">  [ ] Restart Service</text>
-      <text class="term-text gray" x="0" y="414">  [ ] View Status &amp; Logs</text>
-      <text class="term-text gray" x="0" y="436">  [ ] Uninstall Bot</text>
-      <text class="term-text gray" x="0" y="458">  [ ] Exit</text>
+      <!-- Menu Inactive Options -->
+      <text class="t-code c-dim" x="0" y="396">  [ ] Reconfigure Settings (Edit API keys and model)</text>
+      <text class="t-code c-dim" x="0" y="420">  [ ] Restart Service</text>
+      <text class="t-code c-dim" x="0" y="444">  [ ] View Status &amp; Logs</text>
+      <text class="t-code c-dim" x="0" y="468">  [ ] Uninstall Bot</text>
+      <text class="t-code c-dim" x="0" y="492">  [ ] Exit</text>
     </g>
   </g>
 </svg>
