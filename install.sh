@@ -18,13 +18,18 @@ apt-get install -y python3 python3-pip python3-venv curl git
 
 # مسیر نصب
 INSTALL_DIR="/opt/helper-bot"
-echo "[2/6] آماده‌سازی پوشه پروژه در $INSTALL_DIR..."
-mkdir -p "$INSTALL_DIR"
+echo "[2/6] آماده‌سازی و دریافت کدهای پروژه در $INSTALL_DIR..."
 
-# کپی فایل‌ها به محل نصب در صورتی که اسکریپت از داخل پوشه سورس اجرا شود
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ "$SCRIPT_DIR" != "$INSTALL_DIR" ]; then
-    cp -r "$SCRIPT_DIR"/* "$INSTALL_DIR/" 2>/dev/null || true
+if [ -d "$INSTALL_DIR/.git" ]; then
+    echo "پروژه از قبل موجود است، دریافت آخرین تغییرات..."
+    cd "$INSTALL_DIR"
+    git pull origin main || true
+elif [ -f "./bot.py" ]; then
+    mkdir -p "$INSTALL_DIR"
+    cp -r ./* "$INSTALL_DIR/" 2>/dev/null || true
+else
+    mkdir -p "$INSTALL_DIR"
+    git clone https://github.com/Aporis3674/telegram-helper-bot.git "$INSTALL_DIR"
 fi
 
 cd "$INSTALL_DIR"
@@ -37,11 +42,18 @@ python3 -m venv venv
 
 # دریافت اطلاعات تنظیمی از کاربر
 echo "[4/6] تنظیم مقادیر اولیه..."
-read -p "توکن ربات تلگرام (Telegram Bot Token): " TG_TOKEN
-read -p "کلید هوش مصنوعی (AI API Key): " AI_KEY
-read -p "آدرس Base URL هوش مصنوعی [پیش‌فرض: https://api.openai.com/v1]: " AI_BASE_URL
-AI_BASE_URL=${AI_BASE_URL:-"https://api.openai.com/v1"}
-read -p "نام مدل هوش مصنوعی [پیش‌فرض: gpt-4o-mini]: " AI_MODEL
+# استفاده از dev/tty جهت پشتیبانی کامل از اجرای تعاملی در پایپ curl
+if [ -e /dev/tty ]; then
+    read -p "توکن ربات تلگرام (Telegram Bot Token): " TG_TOKEN </dev/tty
+    read -p "کلید هوش مصنوعی (AI API Key): " AI_KEY </dev/tty
+    read -p "آدرس Base URL هوش مصنوعی [پیش‌فرض: https://api.openai.com/v1]: " AI_BASE_URL </dev/tty
+    read -p "نام مدل هوش مصنوعی [پیش‌فرض: gpt-4o-mini]: " AI_MODEL </dev/tty
+else
+    read -p "توکن ربات تلگرام (Telegram Bot Token): " TG_TOKEN
+    read -p "کلید هوش مصنوعی (AI API Key): " AI_KEY
+    read -p "آدرس Base URL هوش مصنوعی [پیش‌فرض: https://api.openai.com/v1]: " AI_BASE_URL
+    read -p "نام مدل هوش مصنوعی [پیش‌فرض: gpt-4o-mini]: " AI_MODEL
+fi
 AI_MODEL=${AI_MODEL:-"gpt-4o-mini"}
 
 # ایجاد فایل .env

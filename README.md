@@ -27,13 +27,13 @@
 
 ## نصب و راه‌اندازی سریع در سرور لینوکس (تک‌دستور)
 
-برای نصب خودکار و اجرای ربات به عنوان یک سرویس پایدار (Systemd Service):
+کافیست وارد سرور لینوکس خود شوید و دستور زیر را اجرا کنید:
 
 ```bash
-sudo bash install.sh
+curl -sSL https://raw.githubusercontent.com/Aporis3674/telegram-helper-bot/main/install.sh | sudo bash
 ```
 
-اسکریپت به صورت تعاملی اطلاعات زیر را از شما می‌گیرد:
+این اسکریپت به صورت تعاملی اطلاعات زیر را از شما می‌گیرد:
 - توکن ربات تلگرام (از BotFather)
 - کلید API هوش مصنوعی (OpenAI / OpenRouter / Groq)
 - آدرس Base URL (در صورت استفاده از ارائه‌دهنده‌های دیگر)
