@@ -1,7 +1,7 @@
 # Telegram Helper AI Bot
 
 <p align="center">
-  <img src="assets/cli-preview.svg" alt="Helper AI Bot CLI Preview" width="800">
+  <img src="assets/cli-preview.png" alt="Helper AI Bot CLI Preview" width="800">
 </p>
 
 دستیار هوشمند تلگرام با نام «هلپر» (Helper) مجهز به موتور استدلال، جستجوی زنده وب، قابلیت استفاده در گروه‌ها و چت خصوصی، قالب‌بندی Blockquote و فیلترهای ضد توهین و محتوای نامناسب.
