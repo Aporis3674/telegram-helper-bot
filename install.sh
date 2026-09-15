@@ -208,9 +208,9 @@ do_install() {
 
     printf "\n${C_CYAN}[4/5]${C_RESET} Configuring environment credentials...\n"
     read -u 3 -p "  Enter Telegram Bot Token: " TG_TOKEN
-    read -u 3 -p "  Enter AI API Key: " AI_KEY
-    read -u 3 -p "  Enter AI Base URL [Default: https://api.openai.com/v1]: " AI_BASE_URL
+    read -u 3 -p "  Enter AI Endpoint URL [Default: https://api.openai.com/v1]: " AI_BASE_URL
     AI_BASE_URL=${AI_BASE_URL:-"https://api.openai.com/v1"}
+    read -u 3 -p "  Enter AI API Key: " AI_KEY
     read -u 3 -p "  Enter AI Model [Default: gpt-4o-mini]: " AI_MODEL
     AI_MODEL=${AI_MODEL:-"gpt-4o-mini"}
 
@@ -305,11 +305,11 @@ do_reconfigure() {
     read -u 3 -p "  Telegram Bot Token [${old_token:0:8}...]: " NEW_TOKEN
     NEW_TOKEN=${NEW_TOKEN:-"$old_token"}
 
+    read -u 3 -p "  AI Endpoint URL [$old_base]: " NEW_BASE
+    NEW_BASE=${NEW_BASE:-"$old_base"}
+
     read -u 3 -p "  AI API Key [${old_key:0:8}...]: " NEW_KEY
     NEW_KEY=${NEW_KEY:-"$old_key"}
-
-    read -u 3 -p "  AI Base URL [$old_base]: " NEW_BASE
-    NEW_BASE=${NEW_BASE:-"$old_base"}
 
     read -u 3 -p "  AI Model [$old_model]: " NEW_MODEL
     NEW_MODEL=${NEW_MODEL:-"$old_model"}
