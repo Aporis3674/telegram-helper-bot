@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-# Reconnect stdin to /dev/tty if running through pipe (curl ... | sudo bash)
-if [ -e /dev/tty ]; then
-    exec < /dev/tty
+# Setup interactive terminal input descriptor (FD 3)
+# Keeps STDIN (FD 0) clean so curl ... | bash works without hanging!
+if [ -c /dev/tty ]; then
+    exec 3< /dev/tty
+else
+    exec 3<&0
 fi
 
 # Ensure root / sudo privileges
@@ -49,13 +52,28 @@ get_python_version() {
     fi
 }
 
+has_systemd() {
+    if [ -d /run/systemd/system ] || pidof systemd >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
 get_service_status() {
-    if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${C_GREEN}Active (Running)${C_RESET}"
-    elif [ -f "$SERVICE_FILE" ]; then
-        echo -e "${C_YELLOW}Inactive (Stopped)${C_RESET}"
+    if has_systemd; then
+        if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+            echo -e "${C_GREEN}Active (Running)${C_RESET}"
+        elif [ -f "$SERVICE_FILE" ]; then
+            echo -e "${C_YELLOW}Inactive (Stopped)${C_RESET}"
+        else
+            echo -e "${C_GRAY}Not Installed${C_RESET}"
+        fi
     else
-        echo -e "${C_GRAY}Not Installed${C_RESET}"
+        if pgrep -f "$INSTALL_DIR/bot.py" >/dev/null 2>&1; then
+            echo -e "${C_GREEN}Active (Process Running)${C_RESET}"
+        else
+            echo -e "${C_GRAY}Container (No Systemd)${C_RESET}"
+        fi
     fi
 }
 
@@ -68,7 +86,8 @@ is_installed() {
 
 # Fastfetch style Banner & System Card
 draw_header() {
-    clear
+    command -v clear >/dev/null 2>&1 && clear || printf "\033c"
+
     local os_str=$(get_os_info)
     local py_ver=$(get_python_version)
     local srv_status=$(get_service_status)
@@ -112,7 +131,6 @@ menu_select() {
     local count=${#options[@]}
     local key=""
 
-    # Trap to restore cursor if user interrupts
     trap 'printf "\e[?25h"; exit 0' INT TERM
 
     printf "\e[?25l" # Hide cursor
@@ -128,10 +146,10 @@ menu_select() {
             fi
         done
 
-        # Read keystroke
-        IFS= read -rsn1 key
+        # Read keystroke from FD 3 (terminal tty)
+        IFS= read -u 3 -rsn1 key
         if [[ $key == $'\x1b' ]]; then
-            read -rsn2 -t 0.1 rest || true
+            read -u 3 -rsn2 -t 0.1 rest || true
             key+="$rest"
         fi
 
@@ -183,11 +201,11 @@ do_install() {
     "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 
     printf "\n${C_CYAN}[4/5]${C_RESET} Configuring environment credentials...\n"
-    read -p "  Enter Telegram Bot Token: " TG_TOKEN
-    read -p "  Enter AI API Key: " AI_KEY
-    read -p "  Enter AI Base URL [Default: https://api.openai.com/v1]: " AI_BASE_URL
+    read -u 3 -p "  Enter Telegram Bot Token: " TG_TOKEN
+    read -u 3 -p "  Enter AI API Key: " AI_KEY
+    read -u 3 -p "  Enter AI Base URL [Default: https://api.openai.com/v1]: " AI_BASE_URL
     AI_BASE_URL=${AI_BASE_URL:-"https://api.openai.com/v1"}
-    read -p "  Enter AI Model [Default: gpt-4o-mini]: " AI_MODEL
+    read -u 3 -p "  Enter AI Model [Default: gpt-4o-mini]: " AI_MODEL
     AI_MODEL=${AI_MODEL:-"gpt-4o-mini"}
 
     cat <<EOF > "$INSTALL_DIR/.env"
@@ -198,8 +216,9 @@ AI_MODEL=$AI_MODEL
 EOF
     chmod 600 "$INSTALL_DIR/.env"
 
-    printf "\n${C_CYAN}[5/5]${C_RESET} Registering and starting systemd service...\n"
-    cat <<EOF > "$SERVICE_FILE"
+    printf "\n${C_CYAN}[5/5]${C_RESET} Registering and starting background service...\n"
+    if has_systemd; then
+        cat <<EOF > "$SERVICE_FILE"
 [Unit]
 Description=Telegram Helper AI Bot
 After=network.target
@@ -216,14 +235,19 @@ EnvironmentFile=$INSTALL_DIR/.env
 [Install]
 WantedBy=multi-user.target
 EOF
+        systemctl daemon-reload
+        systemctl enable "$SERVICE_NAME"
+        systemctl restart "$SERVICE_NAME"
 
-    systemctl daemon-reload
-    systemctl enable "$SERVICE_NAME"
-    systemctl restart "$SERVICE_NAME"
-
-    printf "\n${C_GREEN}${C_BOLD}[+] Helper Bot successfully installed and started!${C_RESET}\n"
-    printf "    Status: systemctl status %s\n" "$SERVICE_NAME"
-    printf "    Logs  : journalctl -u %s -f\n\n" "$SERVICE_NAME"
+        printf "\n${C_GREEN}${C_BOLD}[+] Helper Bot successfully installed and started!${C_RESET}\n"
+        printf "    Status: systemctl status %s\n" "$SERVICE_NAME"
+        printf "    Logs  : journalctl -u %s -f\n\n" "$SERVICE_NAME"
+    else
+        pkill -f "$INSTALL_DIR/bot.py" 2>/dev/null || true
+        nohup "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/bot.py" > "$INSTALL_DIR/bot.log" 2>&1 &
+        printf "\n${C_GREEN}${C_BOLD}[+] Helper Bot started in background (PID: $!)!${C_RESET}\n"
+        printf "    Logs  : tail -f %s/bot.log\n\n" "$INSTALL_DIR"
+    fi
 }
 
 # Action: Update
@@ -244,7 +268,12 @@ do_update() {
     "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 
     printf "${C_CYAN}[*]${C_RESET} Restarting service...\n"
-    systemctl restart "$SERVICE_NAME"
+    if has_systemd; then
+        systemctl restart "$SERVICE_NAME"
+    else
+        pkill -f "$INSTALL_DIR/bot.py" 2>/dev/null || true
+        nohup "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/bot.py" > "$INSTALL_DIR/bot.log" 2>&1 &
+    fi
 
     printf "\n${C_GREEN}${C_BOLD}[+] Helper Bot has been updated and restarted successfully!${C_RESET}\n\n"
 }
@@ -267,16 +296,16 @@ do_reconfigure() {
     fi
 
     printf "  Press ENTER to keep existing values in [brackets].\n\n"
-    read -p "  Telegram Bot Token [${old_token:0:8}...]: " NEW_TOKEN
+    read -u 3 -p "  Telegram Bot Token [${old_token:0:8}...]: " NEW_TOKEN
     NEW_TOKEN=${NEW_TOKEN:-"$old_token"}
 
-    read -p "  AI API Key [${old_key:0:8}...]: " NEW_KEY
+    read -u 3 -p "  AI API Key [${old_key:0:8}...]: " NEW_KEY
     NEW_KEY=${NEW_KEY:-"$old_key"}
 
-    read -p "  AI Base URL [$old_base]: " NEW_BASE
+    read -u 3 -p "  AI Base URL [$old_base]: " NEW_BASE
     NEW_BASE=${NEW_BASE:-"$old_base"}
 
-    read -p "  AI Model [$old_model]: " NEW_MODEL
+    read -u 3 -p "  AI Model [$old_model]: " NEW_MODEL
     NEW_MODEL=${NEW_MODEL:-"$old_model"}
 
     cat <<EOF > "$INSTALL_DIR/.env"
@@ -287,41 +316,68 @@ AI_MODEL=$NEW_MODEL
 EOF
     chmod 600 "$INSTALL_DIR/.env"
 
-    systemctl restart "$SERVICE_NAME"
+    if has_systemd; then
+        systemctl restart "$SERVICE_NAME"
+    else
+        pkill -f "$INSTALL_DIR/bot.py" 2>/dev/null || true
+        nohup "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/bot.py" > "$INSTALL_DIR/bot.log" 2>&1 &
+    fi
     printf "\n${C_GREEN}${C_BOLD}[+] Configuration updated and service restarted!${C_RESET}\n\n"
 }
 
 # Action: Restart
 do_restart() {
-    printf "\n${C_CYAN}[*]${C_RESET} Restarting %s service...\n" "$SERVICE_NAME"
-    systemctl restart "$SERVICE_NAME"
-    sleep 1
-    if systemctl is-active --quiet "$SERVICE_NAME"; then
-        printf "${C_GREEN}${C_BOLD}[+] Service is active and running.${C_RESET}\n\n"
+    printf "\n${C_CYAN}[*]${C_RESET} Restarting %s...\n" "$SERVICE_NAME"
+    if has_systemd; then
+        systemctl restart "$SERVICE_NAME"
+        sleep 1
+        if systemctl is-active --quiet "$SERVICE_NAME"; then
+            printf "${C_GREEN}${C_BOLD}[+] Service is active and running.${C_RESET}\n\n"
+        else
+            printf "${C_RED}[!] Warning: Service failed to start. Run journalctl -u %s -f to view errors.${C_RESET}\n\n" "$SERVICE_NAME"
+        fi
     else
-        printf "${C_RED}[!] Warning: Service failed to start. Run journalctl -u %s -f to view errors.${C_RESET}\n\n" "$SERVICE_NAME"
+        pkill -f "$INSTALL_DIR/bot.py" 2>/dev/null || true
+        nohup "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/bot.py" > "$INSTALL_DIR/bot.log" 2>&1 &
+        printf "${C_GREEN}${C_BOLD}[+] Process restarted in background.${C_RESET}\n\n"
     fi
 }
 
 # Action: View Status & Logs
 do_status_logs() {
     printf "\n${C_BLUE}${C_BOLD}=== Service Status ===${C_RESET}\n"
-    systemctl status "$SERVICE_NAME" --no-pager || true
-    printf "\n${C_BLUE}${C_BOLD}=== Recent Logs (Last 20 lines) ===${C_RESET}\n"
-    journalctl -u "$SERVICE_NAME" -n 20 --no-pager || true
+    if has_systemd; then
+        systemctl status "$SERVICE_NAME" --no-pager || true
+        printf "\n${C_BLUE}${C_BOLD}=== Recent Logs (Last 20 lines) ===${C_RESET}\n"
+        journalctl -u "$SERVICE_NAME" -n 20 --no-pager || true
+    else
+        if pgrep -f "$INSTALL_DIR/bot.py" >/dev/null 2>&1; then
+            printf "Process: Running (PID: $(pgrep -f "$INSTALL_DIR/bot.py" | tr '\n' ' '))\n"
+        else
+            printf "Process: Stopped\n"
+        fi
+        if [ -f "$INSTALL_DIR/bot.log" ]; then
+            printf "\n${C_BLUE}${C_BOLD}=== Log file output ===${C_RESET}\n"
+            tail -n 20 "$INSTALL_DIR/bot.log"
+        fi
+    fi
     printf "\n"
 }
 
 # Action: Uninstall
 do_uninstall() {
     printf "\n${C_YELLOW}${C_BOLD}=== Uninstall Helper Bot ===${C_RESET}\n"
-    read -p "  Are you sure you want to completely remove Helper Bot? (y/N): " CONFIRM
+    read -u 3 -p "  Are you sure you want to completely remove Helper Bot? (y/N): " CONFIRM
     if [[ "$CONFIRM" =~ ^[yY]$ ]]; then
         printf "${C_CYAN}[*]${C_RESET} Stopping and disabling service...\n"
-        systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-        systemctl disable "$SERVICE_NAME" 2>/dev/null || true
-        rm -f "$SERVICE_FILE"
-        systemctl daemon-reload
+        if has_systemd; then
+            systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+            systemctl disable "$SERVICE_NAME" 2>/dev/null || true
+            rm -f "$SERVICE_FILE"
+            systemctl daemon-reload
+        else
+            pkill -f "$INSTALL_DIR/bot.py" 2>/dev/null || true
+        fi
 
         printf "${C_CYAN}[*]${C_RESET} Removing project files in %s...\n" "$INSTALL_DIR"
         rm -rf "$INSTALL_DIR"
