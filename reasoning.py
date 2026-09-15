@@ -56,13 +56,14 @@ async def detect_search_query(user_query: str, replied_context: str = "") -> str
         logger.warning(f"Error checking search requirement: {e}")
         return None
 
-async def reason_and_respond(user_query: str, replied_context: str | None = None) -> str:
+async def reason_and_respond(user_query: str, replied_context: str | None = None) -> tuple[str, str | None, str, str | None]:
     """
     موتور استدلال و تولید پاسخ
+    خروجی: (response_text, search_query_used, status, error_message)
     """
     # گاردریل مرحله اول: بررسی محتوای نامناسب
     if is_inappropriate(user_query) or (replied_context and is_inappropriate(replied_context)):
-        return REFUSAL_MESSAGE
+        return REFUSAL_MESSAGE, None, "blocked_guardrail", "Offensive or inappropriate content detected"
 
     # مرحله دوم استدلال: آیا نیاز به وب‌سرچ دارد؟
     search_context = ""
@@ -96,7 +97,9 @@ async def reason_and_respond(user_query: str, replied_context: str | None = None
         raw_output = response.choices[0].message.content or ""
         # تضمین قطعی حذف هرگونه ایموجی احتمالی از خروجی نهایی
         final_output = remove_emojis(raw_output)
-        return final_output if final_output else "پاسخی دریافت نشد."
+        res_text = final_output if final_output else "پاسخی دریافت نشد."
+        return res_text, search_query, "success", None
     except Exception as e:
         logger.error(f"Error in LLM response generation: {e}")
-        return "متاسفانه در حال حاضر در برقراری ارتباط با سرویس پردازش خطایی رخ داد. لطفا لحظاتی دیگر تلاش کنید."
+        err_msg = str(e)
+        return "متاسفانه در حال حاضر در برقراری ارتباط با سرویس پردازش خطایی رخ داد. لطفا لحظاتی دیگر تلاش کنید.", search_query, "error", err_msg

@@ -1,6 +1,6 @@
 import re
 import html
-import logging
+import time
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -13,12 +13,7 @@ from telegram.ext import (
 import config
 from guardrails import remove_emojis
 from reasoning import reason_and_respond
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
-logger = logging.getLogger("HelperBot")
+from activity_logger import logger, record_activity
 
 async def send_as_blockquote(message, text: str, quote: bool = True):
     """
@@ -87,6 +82,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
     if not message:
         return
+
+    user = message.from_user
+    chat = message.chat
+
+    record_activity(
+        user_id=user.id if user else None,
+        username=user.username if user else None,
+        full_name=user.full_name if user else None,
+        chat_id=chat.id if chat else None,
+        chat_type=chat.type if chat else "private",
+        chat_title=chat.title if chat else None,
+        trigger_type="command_start",
+        raw_message="/start",
+        query="/start",
+        replied_context=None,
+        web_search_query=None,
+        response_text="[Start Welcome Message]",
+        duration_sec=0.0,
+        status="success"
+    )
+
     text = (
         "سلام. من هلپر (Helper) هستم، دستیار هوشمند شما.\n\n"
         "می‌توانید سوالات خود را بپرسید. در گروه‌ها نیز با صدا زدن نام من (هلپر یا helper)، "
@@ -99,8 +115,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message or not (message.text or message.caption):
         return
 
-    chat_type = message.chat.type
+    chat = message.chat
+    chat_type = chat.type
     raw_text = message.text or message.caption or ""
+    user = message.from_user
 
     bot_info = await context.bot.get_me()
     bot_username = bot_info.username or ""
@@ -112,6 +130,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message.reply_to_message.from_user.id == bot_info.id
     )
     is_called = is_bot_mentioned_or_called(raw_text, bot_username)
+
+    # تعیین نوع تریگر
+    trigger_type = ""
+    if is_private:
+        trigger_type = "private"
+    elif is_reply_to_bot:
+        trigger_type = "reply_to_bot"
+    elif bot_username and f"@{bot_username.lower()}" in raw_text.lower():
+        trigger_type = "mention"
+    elif is_called:
+        trigger_type = "keyword_helper"
 
     # اگر در گروه باشد و ربات صدا زده نشده باشد و ریپلای روی خود ربات نباشد، پیام نادیده گرفته می‌شود
     if not is_private and not is_reply_to_bot and not is_called:
@@ -137,8 +166,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ارسال وضعیت در حال تایپ
     await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
 
+    start_time = time.time()
+
     # پردازش در موتور استدلال
-    response_text = await reason_and_respond(query, replied_context)
+    response_text, search_query_used, status, error_msg = await reason_and_respond(query, replied_context)
+
+    duration = time.time() - start_time
+
+    # ثبت در سیستم لاگ جامع
+    record_activity(
+        user_id=user.id if user else None,
+        username=user.username if user else None,
+        full_name=user.full_name if user else None,
+        chat_id=chat.id if chat else None,
+        chat_type=chat_type,
+        chat_title=chat.title if chat else None,
+        trigger_type=trigger_type,
+        raw_message=raw_text,
+        query=query,
+        replied_context=replied_context,
+        web_search_query=search_query_used,
+        response_text=response_text,
+        duration_sec=duration,
+        status=status,
+        error_message=error_msg
+    )
 
     # ارسال پاسخ به صورت blockquote
     await send_as_blockquote(message, response_text, quote=True)
