@@ -1,6 +1,8 @@
 import re
+import html
 import logging
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -17,6 +19,35 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger("HelperBot")
+
+async def send_as_blockquote(message, text: str, quote: bool = True):
+    """
+    ارسال پیام داخل قالب blockquote در تلگرام
+    به همراه پشتیبانی از پیام‌های طولانی و تضمین عدم وجود ایموجی
+    """
+    cleaned = remove_emojis(text)
+    if not cleaned:
+        cleaned = "پاسخی دریافت نشد."
+
+    # بررسی محدودیت طول پیام در تلگرام (حداکثر ۴۰۹۶ کاراکتر)
+    chunk_size = 3500
+    if len(cleaned) <= chunk_size:
+        formatted = f"<blockquote>{html.escape(cleaned)}</blockquote>"
+        try:
+            await message.reply_text(formatted, parse_mode=ParseMode.HTML, quote=quote)
+        except Exception as e:
+            logger.warning(f"Error sending HTML blockquote: {e}. Falling back to plain text.")
+            await message.reply_text(cleaned, quote=quote)
+    else:
+        # تقسیم به چند پیام برای پیام‌های طولانی
+        for i in range(0, len(cleaned), chunk_size):
+            chunk = cleaned[i:i + chunk_size]
+            formatted_chunk = f"<blockquote>{html.escape(chunk)}</blockquote>"
+            is_first = (i == 0)
+            try:
+                await message.reply_text(formatted_chunk, parse_mode=ParseMode.HTML, quote=(quote if is_first else False))
+            except Exception:
+                await message.reply_text(chunk, quote=(quote if is_first else False))
 
 def is_bot_mentioned_or_called(text: str, bot_username: str) -> bool:
     """
@@ -47,7 +78,7 @@ def clean_trigger_words(text: str, bot_username: str) -> str:
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    پاسخ به دستور start کاملا رسمی و بدون ایموجی
+    پاسخ به دستور start کاملا رسمی، بدون ایموجی و در قالب blockquote
     """
     message = update.effective_message
     if not message:
@@ -57,7 +88,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "می‌توانید سوالات خود را بپرسید. در گروه‌ها نیز با صدا زدن نام من (هلپر یا helper)، "
         "منشن کردن آیدی من یا ریپلای روی پیام دیگران و صدا زدنم، می‌توانم به شما پاسخ دهم."
     )
-    await message.reply_text(remove_emojis(text))
+    await send_as_blockquote(message, text, quote=False)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
@@ -105,10 +136,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # پردازش در موتور استدلال
     response_text = await reason_and_respond(query, replied_context)
 
-    # اطمینان صد در صدی از عدم وجود ایموجی
-    clean_reply = remove_emojis(response_text)
-
-    await message.reply_text(clean_reply, quote=True)
+    # ارسال پاسخ به صورت blockquote
+    await send_as_blockquote(message, response_text, quote=True)
 
 def main():
     if not config.TELEGRAM_BOT_TOKEN:
